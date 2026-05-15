@@ -178,7 +178,7 @@ is effected by exercising rights under this License with respect to
 the covered work, and you disclaim any intention to limit operation or
 modification of the work as a means of enforcing, against the work's
 users, your or third parties' legal rights to forbid circumvention of
-such measures.
+technological measures.
 
   4. Conveying Verbatim Copies.
 
@@ -292,8 +292,8 @@ typical or common use of that class of product, regardless of the status
 of the particular user or of the way in which the particular user
 actually uses, or expects or is expected to use, the product.  A product
 is a consumer product regardless of whether the product has substantial
-commercial or industrial uses unless such uses represent the only
-significant mode of use of the product.
+commercial, industrial or non-consumer uses, unless such uses represent
+the only significant mode of use of the product.
 
   "Installation Information" for a User Product means any methods,
 procedures, authorization keys, or other information required to install
@@ -459,7 +459,7 @@ sale, or importing the Program or any portion of it.
   11. Patents.
 
   A "contributor" is a copyright holder who authorizes use under this
-License of the Program or a work based on the Program.  The
+License of the Program or a work on which the Program is based.  The
 work thus licensed is called the contributor's "contributor version".
 
   A contributor's "essential patent claims" are all patent claims
@@ -523,7 +523,7 @@ or that patent license was granted, prior to 28 March 2007.
 
   Nothing in this License shall be construed as excluding or limiting
 any implied license or other defenses to infringement that may
-otherwise be available to you under applicable law.
+otherwise be available to you under applicable patent law.
 
   12. No Surrender of Others' Freedom.
 
@@ -581,7 +581,8 @@ to choose that version for the Program.
 
   Later license versions may give you additional or different
 permissions.  However, no additional obligations are imposed on any
-author or contributor as a result of your choosing to follow a later version.
+author or copyright holder as a result of your choosing to follow a
+later version.
 
   15. Disclaimer of Warranty.
 
