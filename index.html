@@ -99,6 +99,7 @@
   }
   #catFilters {
     display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    overflow-x: auto;
   }
   .filter-btn {
     background: var(--bg3);
@@ -136,6 +137,7 @@
     padding: 12px 24px;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
+    overflow-x: auto;
   }
   .party-pill {
     display: flex; align-items: center; gap: 7px;
@@ -157,30 +159,30 @@
 
   /* ── TABLE ────────────────────────────────────────── */
   /*
-   * .table-wrap scrolls horizontally. position:sticky on thead CANNOT work
-   * inside an overflow:auto ancestor, so we use a cloned fixed header instead
-   * (#sticky-header), positioned by JS to mirror the real thead.
+   * The trick for sticky thead: the scroll container must be the document
+   * itself (html/body), NOT a div with overflow:auto. We let the whole page
+   * scroll in both axes. .table-wrap just sets the min-width floor.
    */
-  .table-wrap {
-    overflow-x: auto;
-    padding-bottom: 60px;
-    /* leave room at top so the real thead is hidden behind the fixed clone */
-  }
+  html { overflow-x: auto; }
+  body { min-width: 0; }
+
+  .table-wrap { padding-bottom: 60px; }
 
   table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    min-width: 900px;
+    min-width: 600px;
   }
 
   thead th, tbody td { vertical-align: middle; }
 
-  /* Real thead — visible only when above viewport, otherwise hidden behind
-     the fixed clone. No sticky needed. */
   thead th {
+    position: sticky;
+    top: var(--controls-h, 0px); /* set by JS once controls height is known */
     background: var(--bg2);
     border-bottom: 2px solid var(--border);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.5); /* visually lifts header above body */
     padding: 10px 8px;
     font-size: 0.72rem;
     font-weight: 700;
@@ -188,64 +190,41 @@
     letter-spacing: 0.5px;
     color: var(--muted);
     white-space: nowrap;
+    z-index: 101;
   }
   thead th:first-child {
+    position: sticky; left: 0; z-index: 102; /* corner: sticky both axes */
     text-align: left;
     padding-left: 24px;
-    width: 340px; min-width: 220px;
+    width: 280px; min-width: 180px;
   }
   thead th:not(:first-child) {
     text-align: center;
-    min-width: 80px; width: 80px;
+    min-width: 72px; width: 72px;
   }
 
-  /* ── FIXED CLONED HEADER ──────────────────────────── */
-  #sticky-header {
-    position: fixed;
-    top: 0; left: 0;
-    z-index: 30;
-    overflow: hidden;        /* clips to exactly the visible table width */
-    background: var(--bg2);
-    border-bottom: 2px solid var(--border);
-    display: none;           /* shown by JS once user scrolls past real thead */
-  }
-  #sticky-header table {
-    /* width set by JS to match real table; translate-x tracks horizontal scroll */
-    table-layout: fixed;
-    border-collapse: separate;
-    border-spacing: 0;
-  }
-  #sticky-header th {
-    background: var(--bg2);
-    padding: 10px 8px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--muted);
-    white-space: nowrap;
-    border: none;
-    vertical-align: middle;
-  }
-  #sticky-header th:first-child {
-    text-align: left;
-    padding-left: 24px;
-  }
-  #sticky-header th:not(:first-child) {
-    text-align: center;
-  }
+  /* No cloned header needed */
+  #sticky-header { display: none !important; }
 
   /* ── ALTERNATING COLUMN SHADING ───────────────────── */
-  /* Even child = every other party column (col 1 is question, col 2 = party 1, …) */
-  thead th:nth-child(even),
-  tbody td:nth-child(even),
-  #sticky-header th:nth-child(even) {
-    background-color: rgba(255,255,255,0.03);
-  }
-  /* Question column always solid */
+  /* Driven by col-even/col-odd classes set by restripeColumns() in JS,
+     so the pattern stays correct when columns are hidden. */
+
+  /* thead must be a stacking context so sticky ths sit above scrolling rows */
+  thead { position: relative; z-index: 100; }
+
+  /* Prevent tbody cells from ever creating stacking contexts that escape thead */
+  tbody td { isolation: auto; }
+  tbody td.answer-cell { z-index: auto; }
+
+  thead th.col-even  { background-color: #222736 !important; } /* opaque: --bg2 lightened slightly */
+  thead th.col-odd   { background-color: #181c25 !important; } /* opaque: --bg2 */
+  tbody td.col-even  { background-color: rgba(255,255,255,0.03) !important; }
+  tbody td.col-odd   { background-color: transparent            !important; }
+
+  /* Question column always solid bg — overrides everything */
   thead th:first-child,
-  tbody td:first-child,
-  #sticky-header th:first-child {
+  tbody td:first-child {
     background-color: var(--bg) !important;
   }
   /* Section-header stripe */
@@ -267,8 +246,9 @@
   }
 
   tbody tr { transition: background .1s; }
-  tbody tr:hover td { background-color: rgba(255,255,255,0.055) !important; }
-  tbody tr:hover td:first-child { background-color: #14171f !important; }
+  tbody tr:not(.section-header):hover td.col-even,
+  tbody tr:not(.section-header):hover td.col-odd { background-color: rgba(255,255,255,0.07) !important; }
+  tbody tr:not(.section-header):hover td:first-child { background-color: #14171f !important; }
 
   tbody tr.section-header td {
     background: var(--bg3);
@@ -288,15 +268,13 @@
     padding: 0;
   }
   td:first-child {
-    position: sticky; left: 0;   /* left-sticky still works fine */
+    position: sticky; left: 0;
     background: var(--bg);
-    z-index: 5;
+    z-index: 5; /* below thead (100+) but above sibling tds */
     padding: 10px 16px 10px 24px;
     border-right: 1px solid var(--border);
     min-width: 220px; max-width: 340px;
   }
-  tbody tr:hover td:first-child { background: #14171f; }
-
   .q-label { font-size: 0.82rem; line-height: 1.4; color: var(--text); }
   .q-is    { font-size: 0.68rem; color: var(--muted); margin-top: 2px; font-style: italic; }
 
@@ -313,7 +291,7 @@
     transition: transform .1s;
     cursor: default;
   }
-  .answer-chip:hover { transform: scale(1.08); z-index: 2; }
+  .answer-chip:hover { transform: scale(1.08); }
   .answer-chip .star {
     position: absolute; top: -5px; right: -5px;
     font-size: 0.65rem;
@@ -380,8 +358,42 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.5);
   }
 
-  /* ── DIMMED COLUMNS ───────────────────────────────── */
-  .col-dimmed { opacity: 0.12; transition: opacity .2s; }
+  /* ── HIDDEN COLUMNS ───────────────────────────────── */
+  .col-hidden { display: none; }
+
+  /* ── RESPONSIVE ───────────────────────────────────── */
+  @media (max-width: 640px) {
+    .hero { padding: 20px 14px 18px; }
+    .hero h1 { font-size: 1.4rem; }
+    .hero p { font-size: 0.82rem; }
+    .hero-meta { gap: 6px; }
+    .badge { font-size: 0.7rem; padding: 3px 10px; }
+
+    .legend-bar { padding: 10px 12px; gap: 6px; }
+
+    .controls { padding: 8px 12px; gap: 6px; }
+    #catFilters { gap: 4px; }
+    .filter-btn { padding: 4px 10px; font-size: 0.72rem; }
+    .search-box { width: 100%; }
+
+    .party-legend { padding: 8px 12px; gap: 6px; }
+    .party-pill { font-size: 0.7rem; padding: 4px 8px; }
+    .party-pill .abbr { width: 18px; height: 18px; font-size: 0.62rem; }
+
+    /* Narrower question column on mobile */
+    thead th:first-child,
+    td:first-child { width: 140px; min-width: 120px; max-width: 160px; padding-left: 10px; }
+    .q-label { font-size: 0.72rem; }
+    .q-is    { display: none; } /* hide Icelandic on mobile */
+
+    /* Smaller answer chips */
+    .answer-chip { min-width: 36px; height: 28px; font-size: 0.68rem; }
+    thead th:not(:first-child) { min-width: 44px; width: 44px; padding: 6px 2px; }
+    td.answer-cell { padding: 4px 2px; }
+
+    .party-th-label { display: none; } /* just show the dot on mobile */
+    .party-th-dot { width: 24px; height: 24px; font-size: 0.65rem; }
+  }
 
   /* ── FOOTER ───────────────────────────────────────── */
   .footer {

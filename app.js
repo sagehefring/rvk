@@ -97,9 +97,11 @@
   // ── Build party header columns ────────────────────────────────────────────────
   function buildPartyHeader() {
     const tr = document.querySelector("#mainTable thead tr");
-    parties.forEach((p) => {
+    // col 0 is the question column (already in HTML), parties start at col 1
+    parties.forEach((p, i) => {
       const th = document.createElement("th");
       th.dataset.party = p.name;
+      th.dataset.colIndex = i + 1; // 1-based, 0 = question col
       th.innerHTML = `<div class="party-th-inner">
         <div class="party-th-dot" style="background:${p.color}" title="${p.name}">${p.abbr}</div>
         <span class="party-th-label">${p.nameEn}</span>
@@ -223,7 +225,9 @@
       const rowAnswers = answers[q.id] || [];
       parties.forEach((p, i) => {
         const rawVal = rowAnswers[i] !== undefined ? rowAnswers[i] : "_";
-        tr.appendChild(renderAnswerCell(q, rawVal, p, i));
+        const cell = renderAnswerCell(q, rawVal, p, i);
+        cell.dataset.colIndex = i + 1; // matches th col-index
+        tr.appendChild(cell);
       });
 
       tbody.appendChild(tr);
@@ -248,10 +252,39 @@
       document.querySelector(`.party-pill[data-party="${esc}"]`)
         ?.classList.toggle("dimmed", !on);
       document.querySelector(`thead th[data-party="${esc}"]`)
-        ?.classList.toggle("col-dimmed", !on);
+        ?.classList.toggle("col-hidden", !on);
       document.querySelectorAll(`td[data-party="${esc}"]`).forEach((td) =>
-        td.classList.toggle("col-dimmed", !on)
+        td.classList.toggle("col-hidden", !on)
       );
+    });
+    restripeColumns();
+    buildStickyHeader();
+    syncStickyHeader();
+  }
+
+  // Recompute col-even/col-odd on every visible column after any hide/show
+  function restripeColumns() {
+    // Question col (index 0) is always col-odd (1st visible = odd)
+    const questionTh = mainTable.querySelector("thead th:first-child");
+    if (questionTh) { questionTh.classList.remove("col-even"); questionTh.classList.add("col-odd"); }
+    document.querySelectorAll("td:first-child").forEach(td => {
+      td.classList.remove("col-even"); td.classList.add("col-odd");
+    });
+
+    // Walk visible party columns in order and assign even/odd
+    let visibleIndex = 1; // question col took index 0 (odd)
+    mainTable.querySelectorAll("thead th[data-col-index]").forEach((th) => {
+      const party = th.dataset.party;
+      const esc = CSS.escape(party);
+      const isVisible = !th.classList.contains("col-hidden");
+      const cls = isVisible && (visibleIndex % 2 === 0) ? "col-even" : "col-odd";
+      th.classList.remove("col-even", "col-odd");
+      if (isVisible) { th.classList.add(cls); visibleIndex++; }
+
+      document.querySelectorAll(`td[data-party="${esc}"]`).forEach(td => {
+        td.classList.remove("col-even", "col-odd");
+        if (isVisible) td.classList.add(cls);
+      });
     });
   }
 
@@ -329,58 +362,22 @@
     tooltip.style.top  = y + "px";
   }
 
-  // ── Cloned fixed header ───────────────────────────────────────────────────────
-  //
-  // position:sticky on thead does NOT work when the table lives inside an
-  // overflow:auto container (the browser spec forbids it). Instead we maintain
-  // a second <thead> rendered position:fixed that mirrors the real one.
-  //
-  const stickyBar   = document.getElementById("sticky-header");
-  const stickyTr    = stickyBar.querySelector("tr");
-  const tableWrap   = document.getElementById("tableWrap");
-  const mainTable   = document.getElementById("mainTable");
-  const controls    = document.getElementById("controls");
+  const mainTable = document.getElementById("mainTable");
+  const controls  = document.getElementById("controls");
 
-  // Populate the clone row with th elements matching the real thead
-  function buildStickyHeader() {
-    stickyTr.innerHTML = "";
-    const realThs = mainTable.querySelectorAll("thead th");
-    realThs.forEach((th) => {
-      const clone = th.cloneNode(true);
-      stickyTr.appendChild(clone);
-    });
+  // Keep the CSS variable --controls-h in sync so sticky thead top is correct
+  function updateControlsHeight() {
+    // controls is position:sticky so its offsetHeight is its intrinsic height
+    document.documentElement.style.setProperty(
+      "--controls-h", controls.offsetHeight + "px"
+    );
   }
+  // Also update on scroll in case the controls bar reflows (e.g. filter buttons wrap)
+  window.addEventListener("scroll", updateControlsHeight, { passive: true });
 
-  // Sync widths, position, and horizontal scroll offset
-  function syncStickyHeader() {
-    const controlsRect  = controls.getBoundingClientRect();
-    const wrapRect      = tableWrap.getBoundingClientRect();
-    const realThs       = mainTable.querySelectorAll("thead th");
-    const cloneThs      = stickyTr.querySelectorAll("th");
-    const realTheadRect = mainTable.querySelector("thead").getBoundingClientRect();
-
-    // Show the fixed header only once the real thead has scrolled above viewport
-    const shouldShow = realTheadRect.bottom <= controlsRect.bottom;
-    stickyBar.style.display = shouldShow ? "block" : "none";
-
-    if (!shouldShow) return;
-
-    // Position: sit just below the controls bar, span the visible table width
-    stickyBar.style.top    = controlsRect.bottom + "px";
-    stickyBar.style.left   = wrapRect.left + "px";
-    stickyBar.style.width  = wrapRect.width + "px";
-
-    // Match each column width to the real thead
-    const tableWidth = mainTable.getBoundingClientRect().width;
-    stickyBar.querySelector("table").style.width = tableWidth + "px";
-    realThs.forEach((th, i) => {
-      if (cloneThs[i]) cloneThs[i].style.width = th.getBoundingClientRect().width + "px";
-    });
-
-    // Translate to mirror the horizontal scroll of the wrapper
-    stickyBar.querySelector("table").style.transform =
-      `translateX(${-tableWrap.scrollLeft}px)`;
-  }
+  // No-op stubs so existing call-sites don't break
+  function buildStickyHeader() {}
+  function syncStickyHeader()  {}
 
   // ── Footer source link ────────────────────────────────────────────────────────
   function buildFooter() {
@@ -402,10 +399,10 @@
   buildPartyPills();
   buildRows();
   buildFooter();
+  restripeColumns();
   buildStickyHeader();
-
-  window.addEventListener("scroll",  syncStickyHeader, { passive: true });
-  tableWrap.addEventListener("scroll", syncStickyHeader, { passive: true });
-  window.addEventListener("resize",  syncStickyHeader);
-  requestAnimationFrame(() => requestAnimationFrame(syncStickyHeader));
+  updateControlsHeight(); // set immediately before first paint
+  window.addEventListener("resize", updateControlsHeight);
+  // Re-measure after layout settles (fonts, wrapping, etc.)
+  requestAnimationFrame(() => { updateControlsHeight(); });
 })();
