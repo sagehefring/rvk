@@ -1,7 +1,3 @@
-# ── Generated outputs (rebuild with generate_data.py / translate_reasoning.py) ──
-data.js
-reasoning.json
-
 # ── Raw captured data (large, not for version control) ──
 *.har
 kjordaemi.html
