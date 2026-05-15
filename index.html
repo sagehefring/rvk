@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Reykjavík 2026 – Party Election Quiz Overview</title>
+<style>
+  :root {
+    --bg:     #0f1117;
+    --bg2:    #181c25;
+    --bg3:    #1e2330;
+    --border: #2a2f3e;
+    --text:   #e8eaf0;
+    --muted:  #7a8099;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── HERO ─────────────────────────────────────────── */
+  .hero {
+    background: linear-gradient(135deg, #1a1f35 0%, #0d1b2a 60%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 36px 24px 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(99,120,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero h1 {
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #a0b4ff, #e0c8ff, #ffb4a0);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 0.95rem;
+    max-width: 600px;
+    margin: 0 auto 20px;
+    line-height: 1.6;
+  }
+  .hero-meta {
+    display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+  }
+  .badge {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.78rem;
+    color: #bcc5e0;
+  }
+
+  /* ── LEGEND ───────────────────────────────────────── */
+  .legend-bar {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    justify-content: center;
+    padding: 14px 24px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; color: var(--muted);
+  }
+  .legend-swatch {
+    width: 28px; height: 18px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.9);
+  }
+
+  /* ── STICKY CONTROLS ──────────────────────────────── */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    padding: 12px 24px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .controls-label {
+    font-size: 0.78rem; color: var(--muted); font-weight: 600;
+    white-space: nowrap;
+  }
+  #catFilters {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  }
+  .filter-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    padding: 5px 14px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    background: rgba(99,120,255,0.18);
+    border-color: rgba(99,120,255,0.5);
+    color: #a0b4ff;
+  }
+  .controls-sep { flex: 1; min-width: 8px; }
+  .search-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 5px 12px;
+    font-size: 0.82rem;
+    outline: none;
+    width: 200px;
+    transition: border-color .15s;
+  }
+  .search-box:focus { border-color: rgba(99,120,255,0.5); }
+  .search-box::placeholder { color: var(--muted); }
+
+  /* ── PARTY PILLS ──────────────────────────────────── */
+  .party-legend {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 12px 24px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .party-pill {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem; font-weight: 600;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: opacity .15s;
+    user-select: none;
+  }
+  .party-pill .abbr {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+  }
+  .party-pill.dimmed { opacity: 0.25; }
+
+  /* ── TABLE ────────────────────────────────────────── */
+  /*
+   * .table-wrap scrolls horizontally. position:sticky on thead CANNOT work
+   * inside an overflow:auto ancestor, so we use a cloned fixed header instead
+   * (#sticky-header), positioned by JS to mirror the real thead.
+   */
+  .table-wrap {
+    overflow-x: auto;
+    padding-bottom: 60px;
+    /* leave room at top so the real thead is hidden behind the fixed clone */
+  }
+
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 900px;
+  }
+
+  thead th, tbody td { vertical-align: middle; }
+
+  /* Real thead — visible only when above viewport, otherwise hidden behind
+     the fixed clone. No sticky needed. */
+  thead th {
+    background: var(--bg2);
+    border-bottom: 2px solid var(--border);
+    padding: 10px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  thead th:first-child {
+    text-align: left;
+    padding-left: 24px;
+    width: 340px; min-width: 220px;
+  }
+  thead th:not(:first-child) {
+    text-align: center;
+    min-width: 80px; width: 80px;
+  }
+
+  /* ── FIXED CLONED HEADER ──────────────────────────── */
+  #sticky-header {
+    position: fixed;
+    top: 0; left: 0;
+    z-index: 30;
+    overflow: hidden;        /* clips to exactly the visible table width */
+    background: var(--bg2);
+    border-bottom: 2px solid var(--border);
+    display: none;           /* shown by JS once user scrolls past real thead */
+  }
+  #sticky-header table {
+    /* width set by JS to match real table; translate-x tracks horizontal scroll */
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  #sticky-header th {
+    background: var(--bg2);
+    padding: 10px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    border: none;
+    vertical-align: middle;
+  }
+  #sticky-header th:first-child {
+    text-align: left;
+    padding-left: 24px;
+  }
+  #sticky-header th:not(:first-child) {
+    text-align: center;
+  }
+
+  /* ── ALTERNATING COLUMN SHADING ───────────────────── */
+  /* Even child = every other party column (col 1 is question, col 2 = party 1, …) */
+  thead th:nth-child(even),
+  tbody td:nth-child(even),
+  #sticky-header th:nth-child(even) {
+    background-color: rgba(255,255,255,0.03);
+  }
+  /* Question column always solid */
+  thead th:first-child,
+  tbody td:first-child,
+  #sticky-header th:first-child {
+    background-color: var(--bg) !important;
+  }
+  /* Section-header stripe */
+  tbody tr.section-header td { background: var(--bg3) !important; }
+
+  .party-th-inner {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .party-th-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 800; color: #fff;
+  }
+  .party-th-label {
+    font-size: 0.6rem; color: #8a96b0; font-weight: 600;
+    max-width: 68px; text-align: center;
+    white-space: normal; line-height: 1.2;
+    text-transform: none; letter-spacing: 0;
+  }
+
+  tbody tr { transition: background .1s; }
+  tbody tr:hover td { background-color: rgba(255,255,255,0.055) !important; }
+  tbody tr:hover td:first-child { background-color: #14171f !important; }
+
+  tbody tr.section-header td {
+    background: var(--bg3);
+    padding: 8px 24px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #7a8099;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr.hidden-row { display: none; }
+
+  td {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    padding: 0;
+  }
+  td:first-child {
+    position: sticky; left: 0;   /* left-sticky still works fine */
+    background: var(--bg);
+    z-index: 5;
+    padding: 10px 16px 10px 24px;
+    border-right: 1px solid var(--border);
+    min-width: 220px; max-width: 340px;
+  }
+  tbody tr:hover td:first-child { background: #14171f; }
+
+  .q-label { font-size: 0.82rem; line-height: 1.4; color: var(--text); }
+  .q-is    { font-size: 0.68rem; color: var(--muted); margin-top: 2px; font-style: italic; }
+
+  /* ── ANSWER CHIPS ─────────────────────────────────── */
+  td.answer-cell {
+    text-align: center; padding: 6px 4px; position: relative;
+  }
+  .answer-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    min-width: 52px; height: 34px;
+    font-size: 0.8rem; font-weight: 700;
+    position: relative;
+    transition: transform .1s;
+    cursor: default;
+  }
+  .answer-chip:hover { transform: scale(1.08); z-index: 2; }
+  .answer-chip .star {
+    position: absolute; top: -5px; right: -5px;
+    font-size: 0.65rem;
+    background: #ffd700; color: #000;
+    border-radius: 50%; width: 14px; height: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; line-height: 1;
+  }
+  .answer-chip .info-dot {
+    position: absolute; top: -5px; left: -5px;
+    font-size: 0.6rem; font-weight: 900; font-style: normal;
+    background: rgba(160,180,255,0.25); color: #a0b4ff;
+    border: 1px solid rgba(160,180,255,0.5);
+    border-radius: 50%; width: 14px; height: 14px;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; pointer-events: none;
+  }
+  .answer-chip.no-answer {
+    background: rgba(255,255,255,0.04); color: var(--muted); font-size: 1rem;
+  }
+
+  /* Proposition A → D  (red → green, 4-point scale) */
+  .ans-A { background: rgba(239,68,68,0.85);  color: #fff; }
+  .ans-B { background: rgba(251,146,60,0.85); color: #fff; }
+  .ans-C { background: rgba(74,222,128,0.80); color: #001a08; }
+  .ans-D { background: #0d7a3e;               color: #e0ffe8; font-weight: 900; }
+
+  /* Range  (low → high) */
+  .range-0 { background: rgba(239,68,68,0.75);  color: #fff;    font-size: 0.68rem; }
+  .range-1 { background: rgba(251,146,60,0.75); color: #fff;    font-size: 0.68rem; }
+  .range-2 { background: rgba(234,179,8,0.85);  color: #1a1100; font-size: 0.68rem; }
+  .range-3 { background: rgba(74,222,128,0.75); color: #001a08; font-size: 0.68rem; }
+  .range-4 { background: rgba(34,197,94,0.9);   color: #001a08; font-size: 0.68rem; }
+
+  /* Priority tags */
+  .priority-tags {
+    display: flex; flex-wrap: wrap; gap: 3px;
+    justify-content: center; padding: 4px;
+  }
+  .priority-tag {
+    background: rgba(99,120,255,0.2);
+    border: 1px solid rgba(99,120,255,0.4);
+    border-radius: 4px; padding: 2px 6px;
+    font-size: 0.62rem; color: #a0b4ff; white-space: nowrap;
+  }
+
+  /* ── TOOLTIP (JS-driven, appended to body) ────────── */
+  #js-tooltip {
+    position: fixed;
+    background: #2a2f3e;
+    border: 1px solid #3a3f55;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.73rem;
+    color: var(--text);
+    white-space: pre-wrap;
+    max-width: 240px;
+    text-align: center;
+    z-index: 9999;
+    pointer-events: none;
+    line-height: 1.4;
+    font-weight: 400;
+    display: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  /* ── DIMMED COLUMNS ───────────────────────────────── */
+  .col-dimmed { opacity: 0.12; transition: opacity .2s; }
+
+  /* ── FOOTER ───────────────────────────────────────── */
+  .footer {
+    text-align: center; padding: 24px;
+    color: var(--muted); font-size: 0.75rem;
+    border-top: 1px solid var(--border); line-height: 2;
+  }
+  .footer a { color: #7a8aaa; }
+</style>
+</head>
+<body>
+
+<!-- ── HERO ──────────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <h1>🗳 Reykjavík Election Quiz 2026</h1>
+  <p>How every party answered the RÚV election quiz.
+     Colours show agreement level — a gold ★ means the party marked it as a priority.</p>
+  <div class="hero-meta">
+    <span class="badge">🏙 Reykjavík municipality</span>
+    <span class="badge" id="badge-date">🗓 Municipal elections 2026</span>
+    <span class="badge" id="badge-questions">📋 Loading…</span>
+    <span class="badge">📡 Source: kosningaprof.ruv.is</span>
+  </div>
+</div>
+
+<!-- ── LEGEND ─────────────────────────────────────────────────────────────── -->
+<div class="legend-bar">
+  <span style="font-size:0.78rem;color:var(--muted);margin-right:6px;">Agreement scale:</span>
+  <span class="legend-item"><span class="legend-swatch ans-A">A</span> Strongly disagree</span>
+  <span class="legend-item"><span class="legend-swatch ans-B">B</span> Disagree</span>
+  <span class="legend-item"><span class="legend-swatch ans-C">C</span> Agree</span>
+  <span class="legend-item"><span class="legend-swatch ans-D">D</span> Strongly agree</span>
+  <span class="legend-item" style="margin-left:10px;">
+    <span style="background:#ffd700;border-radius:50%;width:14px;height:14px;
+                 display:inline-flex;align-items:center;justify-content:center;
+                 font-size:0.6rem;font-weight:900;color:#000;">★</span>
+    &nbsp;Priority
+  </span>
+  <span class="legend-item">
+    <span class="legend-swatch" style="background:rgba(255,255,255,0.07);color:#555;">—</span>
+    No answer
+  </span>
+</div>
+
+<!-- ── STICKY CONTROLS ────────────────────────────────────────────────────── -->
+<div class="controls" id="controls">
+  <span class="controls-label">Filter:</span>
+  <div id="catFilters"><!-- built by app.js --></div>
+  <span class="controls-sep"></span>
+  <input class="search-box" id="searchBox"
+         placeholder="🔍 Search questions…"
+         oninput="doSearch(this.value)"/>
+</div>
+
+<!-- ── PARTY PILLS ────────────────────────────────────────────────────────── -->
+<div class="party-legend" id="partyPills"><!-- built by app.js --></div>
+
+<!-- ── FIXED CLONED HEADER (populated + positioned by app.js) ─────────────── -->
+<div id="sticky-header"><table><thead><tr></tr></thead></table></div>
+
+<!-- ── MAIN TABLE ─────────────────────────────────────────────────────────── -->
+<div class="table-wrap" id="tableWrap">
+  <table id="mainTable">
+    <thead>
+      <tr><th>Question</th><!-- party cols added by app.js --></tr>
+    </thead>
+    <tbody id="tableBody"><!-- rows added by app.js --></tbody>
+  </table>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<div class="footer">
+  Data from <a id="footer-source" href="https://kosningaprof.ruv.is" target="_blank">kosningaprof.ruv.is</a>
+  · Reykjavík municipality (constituency 0000)<br/>
+  <span id="footer-generated"></span><br/>
+  <strong>A</strong> = Strongly disagree &nbsp;·&nbsp;
+  <strong>B</strong> = Disagree &nbsp;·&nbsp;
+  <strong>C</strong> = Agree &nbsp;·&nbsp;
+  <strong>D</strong> = Strongly agree &nbsp;·&nbsp;
+  <strong>_</strong> = No answer &nbsp;·&nbsp;
+  ★ = Marked as priority
+</div>
+
+<!-- JS tooltip element (lives at top of stacking context) -->
+<div id="js-tooltip"></div>
+
+<!-- ── DATA + APP (order matters: data first) ─────────────────────────────── -->
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

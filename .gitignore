@@ -1,0 +1,12 @@
+# ── Generated outputs (rebuild with generate_data.py / translate_reasoning.py) ──
+data.js
+reasoning.json
+
+# ── Raw captured data (large, not for version control) ──
+*.har
+kjordaemi.html
+kjordaemi_files/
+
+# ── Superseded files ──
+reykjavik_election_quiz.html
+reykjavik_party_answers.csv
